@@ -19,4 +19,8 @@ jobs:
       - name: Upload signed APK
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload v1.0.0 distribution/game-brief-arm64.apk distribution/SHA256SUMS --repo "$GITHUB_REPOSITORY" --clobber
+        run: |
+          if ! gh release view v1.0.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create v1.0.0 --repo "$GITHUB_REPOSITORY" --target f6228547050522e4ffa5cac78c500b2e219c8b3e --title 'Game Brief 1.0.0 — Android APK' --notes-file distribution/RELEASE_NOTES.md
+          fi
+          gh release upload v1.0.0 distribution/game-brief-arm64.apk distribution/SHA256SUMS --repo "$GITHUB_REPOSITORY" --clobber
