@@ -17,7 +17,7 @@ class LocalTranslator implements Translator {
   Future<void> _prepare() async {
     for (final code in ['en', 'ko']) {
       if (!await _manager.isModelDownloaded(code)) {
-        final ok = await _manager.downloadModel(code, isWifiRequired: false);
+        final ok = await _manager.downloadModel(code, isWifiRequired: false).timeout(const Duration(minutes: 2));
         if (!ok) throw StateError('번역 모델을 다운로드할 수 없습니다. 연결 후 다시 시도하세요.');
       }
     }
@@ -30,7 +30,7 @@ class LocalTranslator implements Translator {
     if (saved != null) return saved;
     try {
       await (_ready ??= _prepare());
-      final value = await _translator.translateText(text);
+      final value = await _translator.translateText(text).timeout(const Duration(seconds: 20));
       await prefs.setString(key, value);
       return value;
     } catch (_) {

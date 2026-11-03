@@ -54,3 +54,11 @@ flutter {
 }
 
 dependencies { coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4") }
+
+gradle.taskGraph.whenReady {
+    if (allTasks.any { it.name == "assembleRelease" || it.name == "bundleRelease" }) {
+        require(rootProject.file("key.properties").exists()) {
+            "Release signing requires android/key.properties; see docs/deployment.md"
+        }
+    }
+}
