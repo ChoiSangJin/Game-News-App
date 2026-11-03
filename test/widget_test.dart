@@ -26,6 +26,8 @@ void main() {
     expect(find.text('번역: Summary body'), findsOneWidget);
     await tester.pageBack(); await tester.pumpAndSettle();
     await tester.tap(find.text('이벤트 달력')); await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, -350));
+    await tester.pumpAndSettle();
     expect(find.text('발매 일정 연결'), findsOneWidget);
     expect(source.calls, 0);
     expect(tester.takeException(), isNull);
