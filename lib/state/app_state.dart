@@ -1,0 +1,97 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import '../data/cache.dart';
+import '../data/sources.dart';
+import '../data/translation.dart';
+import '../models/story.dart';
+
+class AppState extends ChangeNotifier {
+  AppState(this.cache, this.source, this.translator, {DateTime Function()? clock})
+      : clock = clock ?? DateTime.now {
+    cache.load();
+    try {
+      final raw = cache.prefs.getString('personal_events_v1');
+      if (raw != null) personalEvents = (jsonDecode(raw) as List)
+        .map((e) => Story.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+    } catch (_) { personalEvents = []; }
+  }
+  final FeedCache cache;
+  final FeedSource source;
+  final Translator translator;
+  final DateTime Function() clock;
+  List<Story> personalEvents = [];
+  Future<void> addEvent(Story event) async {
+    final next = [...personalEvents, event];
+    await cache.prefs.setString('personal_events_v1', jsonEncode(next.map((e) => e.toJson()).toList()));
+    personalEvents = next;
+    notifyListeners();
+  }
+  Future<void> removeEvent(String id) async {
+    final next = personalEvents.where((e) => e.id != id).toList();
+    await cache.prefs.setString('personal_events_v1', jsonEncode(next.map((e) => e.toJson()).toList()));
+    personalEvents = next;
+    notifyListeners();
+  }
+  String rawgKey = '';
+  GamePlatform? platform;
+  bool busy = false;
+  String? error;
+  List<String> warnings = [];
+  DateTime? _lastAttempt;
+  static const cooldown = Duration(minutes: 1);
+  Future<void>? _pending;
+  List<Story> get news => cache.stories.where((s) => !s.isEvent &&
+    (platform == null || s.platforms.contains(platform))).toList();
+  List<Story> eventsOn(DateTime day) => [...cache.stories, ...personalEvents].where((s) => s.isEvent &&
+    s.date.year == day.year && s.date.month == day.month && s.date.day == day.day).toList();
+  bool hasEvent(DateTime day) => eventsOn(day).isNotEmpty;
+  void selectPlatform(GamePlatform? value) { platform = value; notifyListeners(); }
+
+  Future<void> refresh({bool force = false}) {
+    if (_pending != null) return _pending!;
+    if (!force && cache.isFresh(clock())) return Future.value();
+    if (_lastAttempt != null && clock().difference(_lastAttempt!) < cooldown) {
+      if (force) { error = '요청 보호를 위해 1분 뒤 새로고침해 주세요.'; notifyListeners(); }
+      return Future.value();
+    }
+    return _pending = _refresh(force).whenComplete(() => _pending = null);
+  }
+  Future<void> _refresh(bool force) async {
+    busy = true; error = null; warnings = [];
+    _lastAttempt = clock();
+    notifyListeners();
+    try {
+      // Keep the in-memory stale data on failure, but invalidate persistent TTL.
+      if (force) await cache.invalidate();
+      final result = await source.fetch(rawgKey);
+      final values = <Story>[];
+      var translationFailed = false;
+      for (final s in result.stories) {
+        final old = cache.stories.where((o) => o.id == s.id && o.title == s.title && o.titleKo != null);
+        if (old.isNotEmpty) { values.add(s.translated(old.first.titleKo!)); continue; }
+        if (translationFailed) { values.add(s); continue; }
+        try { values.add(s.translated(await translator.translate(s.title))); }
+        catch (_) { translationFailed = true; values.add(s); }
+      }
+      warnings = [...result.warnings, if (translationFailed) '일부 제목 번역을 준비하지 못했습니다. 상세 화면에서 다시 시도할 수 있습니다.'];
+      // Partial source failures retain old records and remain stale for retry.
+      final merged = result.warnings.isEmpty ? values : {
+        for (final s in cache.stories) s.id: s,
+        for (final s in values) s.id: s,
+      }.values.toList();
+      merged.sort((a,b) => b.date.compareTo(a.date));
+      await cache.save(merged, clock());
+      if (result.warnings.isNotEmpty) await cache.invalidate();
+    } catch (_) { error = '새 소식을 가져오지 못했습니다. 연결을 확인하고 다시 시도하세요.'; }
+    finally { busy = false; notifyListeners(); }
+  }
+
+  Future<void> changeKey(String value) async {
+    rawgKey = value.trim();
+    // Remove schedules tied to a previous account and invalidate its TTL.
+    cache.stories = cache.stories.where((s) => !s.isEvent).toList();
+    await cache.invalidate();
+    _lastAttempt = null;
+    await refresh(force: true);
+  }
+}
