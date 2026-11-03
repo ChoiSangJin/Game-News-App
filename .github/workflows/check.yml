@@ -1,0 +1,70 @@
+name: Android checks
+on:
+  pull_request:
+  push:
+    branches: [main, 'feat/**']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Analyze
+        run: |
+          set -o pipefail
+          flutter analyze --no-fatal-infos 2>&1 | tee /tmp/game-brief-analyze.log
+      - name: Tests
+        run: |
+          set -o pipefail
+          if flutter test --reporter expanded 2>&1 | tee /tmp/game-brief-tests.log; then
+            echo '::notice::Flutter test suite passed'
+          else
+            python3 scripts/ci_diagnostics.py /tmp/game-brief-tests.log
+            exit 1
+          fi
+      - name: Live RSS smoke test
+        run: |
+          set -o pipefail
+          if flutter test --dart-define=LIVE_FEEDS=true test/live_feed_test.dart --reporter expanded 2>&1 | tee /tmp/game-brief-live.log; then
+            echo '::notice::Live RSS fetch and parsing passed'
+          else
+            python3 scripts/ci_diagnostics.py /tmp/game-brief-live.log
+            exit 1
+          fi
+      - run: dart run flutter_launcher_icons
+      - name: ARM64 debug APK
+        run: |
+          set -o pipefail
+          if flutter build apk --debug --target-platform android-arm64 2>&1 | tee /tmp/game-brief-build.log /tmp/game-brief-live.log; then
+            echo '::notice::ARM64 APK build passed'
+          else
+            python3 scripts/ci_diagnostics.py /tmp/game-brief-build.log
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: game-brief-arm64-test-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+      - name: Validation summary
+        if: always()
+        run: |
+          for file in /tmp/game-brief-analyze.log /tmp/game-brief-tests.log /tmp/game-brief-build.log /tmp/game-brief-live.log; do
+            if test -f "$file"; then
+              printf '\n### %s\n\n```text\n' "$(basename "$file")" >> "$GITHUB_STEP_SUMMARY"
+              tail -150 "$file" >> "$GITHUB_STEP_SUMMARY"
+              printf '\n```\n' >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
