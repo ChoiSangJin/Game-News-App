@@ -39,4 +39,6 @@ flutter run
 
 ## 검증 상태
 
-이 작업에서는 네트워크 정책에 의해 Dart SDK 다운로드와 GitHub API가 차단되었습니다. 로컬 Flutter 분석·테스트·빌드는 아직 실행하지 못했습니다. GitHub Actions에서는 한국어 UI 테스트 수정 후 분석과 테스트 단계를 통과했습니다. 현재 Android 빌드 실패를 진단하고 있습니다. Android APK 빌드·기기 설치·PR 머지·APK 게시 완료는 아직 확인되지 않았습니다. 작성된 테스트는 캐시 TTL, 필터의 무통신 동작, 요청 병합, 오류 복구, RSS 파싱, 일정 저장 및 상세 화면의 지연 번역을 검증하도록 구성했습니다. 실제 통과 여부는 SDK 준비 후 확인해야 합니다.
+[소스 커밋 a51c27d의 GitHub Actions](https://github.com/ChoiSangJin/Game-News-App/actions/runs/41558211660)에서 Flutter 분석, 단위·위젯 테스트, 실제 공개 RSS 수집·파싱, ARM64 debug APK 빌드를 통과했습니다. 해당 실행의 `game-brief-arm64-test-apk` 아티팩트에서 테스트용 APK를 다운로드할 수 있습니다. 기기 설치·ML Kit 모델 다운로드·실제 알림 수신은 아직 검증하지 않았습니다.
+
+클라우드에는 Android SDK 도구를 설치했지만, 네트워크 정책이 Dart SDK 다운로드와 GitHub API를 차단하고 있습니다. 따라서 로컬 Flutter 검증과 PR 생성·머지·GitHub Release 게시는 아직 완료하지 못했습니다. 네트워크 설정 초안에 필요한 도메인을 추가했습니다. 설정 적용 후 기존 플랫폼 인증으로 GitHub API 접근을 재확인해야 합니다. Release 게시에는 `docs/deployment.md`에 명시한 개인 Android 서명 비밀값도 필요합니다. APK 아티팩트는 테스트용 debug 서명이며 정식 Release 게시와 구분됩니다.
