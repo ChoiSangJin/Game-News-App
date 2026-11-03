@@ -16,7 +16,7 @@ Flutter로 만든 개인용 Android 게임 뉴스·발매 일정 앱. 서버나 
 
 ## 개발
 
-Flutter **3.35.7** (Dart 3.9), JDK 17, Android SDK 필요. Android 최소 API 23, ARM64 대상.
+Flutter **3.35.7** (Dart 3.9), JDK 17, Android SDK 필요. Android 최소 API 24, ARM64 대상.
 
 ```sh
 flutter pub get
@@ -35,10 +35,12 @@ flutter run
 
 [배포 절차](docs/deployment.md)를 참고하세요. CI는 분석·테스트·ARM64 debug APK 빌드를 수행합니다. Release 워크플로는 main에서 수동 실행하며 동일 검증 후 개인 서명 키로 ARM64 release APK를 서명하고 GitHub Releases에 APK와 SHA256 체크섬을 게시합니다. 검증 실패 시 게시하지 않습니다.
 
-소스의 `pubspec.lock`은 최초 성공적인 `flutter pub get` 후 커밋해 의존성 해석을 고정해야 합니다. 현재 클라우드에서 SDK 다운로드가 차단되어 lockfile과 실행 결과는 아직 생성하지 못했습니다. 구현·테스트 파일 작성은 실행 검증 완료를 의미하지 않습니다.
+소스의 `pubspec.lock`은 최초 성공적인 `flutter pub get` 후 커밋해 의존성 해석을 고정해야 합니다. 생성된 lockfile을 저장소에 포함했습니다.
 
 ## 검증 상태
 
-[소스 커밋 a51c27d의 GitHub Actions](https://github.com/ChoiSangJin/Game-News-App/actions/runs/41558211660)에서 Flutter 분석, 단위·위젯 테스트, 실제 공개 RSS 수집·파싱, ARM64 debug APK 빌드를 통과했습니다. 해당 실행의 `game-brief-arm64-test-apk` 아티팩트에서 테스트용 APK를 다운로드할 수 있습니다. 기기 설치·ML Kit 모델 다운로드·실제 알림 수신은 아직 검증하지 않았습니다.
+[GitHub Actions](https://github.com/ChoiSangJin/Game-News-App/actions/runs/41558211660)에서 Flutter 분석, 단위·위젯 테스트, 실제 공개 RSS 수집·파싱 및 ARM64 APK 빌드를 통과했습니다. 클라우드에서도 ARM64 APK를 빌드하고 서명을 검증했습니다. 기기 설치·번역 모델 다운로드·실제 알림 수신은 아직 검증하지 않았습니다.
 
-클라우드에는 Android SDK 도구를 설치했지만, 네트워크 정책이 Dart SDK 다운로드와 GitHub API를 차단하고 있습니다. 따라서 로컬 Flutter 검증과 PR 생성·머지·GitHub Release 게시는 아직 완료하지 못했습니다. 네트워크 설정 초안에 필요한 도메인을 추가했습니다. 설정 적용 후 기존 플랫폼 인증으로 GitHub API 접근을 재확인해야 합니다. Release 게시에는 `docs/deployment.md`에 명시한 개인 Android 서명 비밀값도 필요합니다. APK 아티팩트는 테스트용 debug 서명이며 정식 Release 게시와 구분됩니다.
+정식 APK는 [GitHub Releases](https://github.com/ChoiSangJin/Game-News-App/releases)에서 다운로드합니다. Android 7.0(API 24) 이상 ARM64 대상입니다. 이전 debug 테스트 앱을 설치했다면 서명이 다르므로 삭제 후 정식 APK를 설치해야 합니다. 삭제 시 로컬 데이터가 사라질 수 있습니다.
+
+개인 배포 서명 키는 저장소 밖에 보관하며 소스와 Release에는 포함하지 않습니다. GitHub Actions에서 후속 버전을 배포하려면 docs/deployment.md에 명시한 서명 비밀값을 등록해야 합니다. 최초 배포 키를 계속 사용해야 기존 앱 위에 업데이트할 수 있습니다.

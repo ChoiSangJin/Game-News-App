@@ -1,4 +1,4 @@
-Flutter 기반 개인용 Android 게임 뉴스·일정 앱입니다. ARM64 / Android 6.0 이상을 대상으로 합니다.
+Flutter 기반 개인용 Android 게임 뉴스·일정 앱입니다. ARM64 / Android 7.0 이상을 대상으로 합니다.
 
 - PC Gamer·GameSpot RSS 뉴스와 기기별 로컬 필터
 - 12시간 캐시, 수동 갱신, 오프라인 캐시 유지
