@@ -34,11 +34,20 @@ jobs:
             python3 scripts/ci_diagnostics.py /tmp/game-brief-tests.log
             exit 1
           fi
+      - name: Live RSS smoke test
+        run: |
+          set -o pipefail
+          if flutter test --dart-define=LIVE_FEEDS=true test/live_feed_test.dart --reporter expanded 2>&1 | tee /tmp/game-brief-live.log; then
+            echo '::notice::Live RSS fetch and parsing passed'
+          else
+            python3 scripts/ci_diagnostics.py /tmp/game-brief-live.log
+            exit 1
+          fi
       - run: dart run flutter_launcher_icons
       - name: ARM64 debug APK
         run: |
           set -o pipefail
-          if flutter build apk --debug --target-platform android-arm64 2>&1 | tee /tmp/game-brief-build.log; then
+          if flutter build apk --debug --target-platform android-arm64 2>&1 | tee /tmp/game-brief-build.log /tmp/game-brief-live.log; then
             echo '::notice::ARM64 APK build passed'
           else
             python3 scripts/ci_diagnostics.py /tmp/game-brief-build.log
@@ -52,7 +61,7 @@ jobs:
       - name: Validation summary
         if: always()
         run: |
-          for file in /tmp/game-brief-analyze.log /tmp/game-brief-tests.log /tmp/game-brief-build.log; do
+          for file in /tmp/game-brief-analyze.log /tmp/game-brief-tests.log /tmp/game-brief-build.log /tmp/game-brief-live.log; do
             if test -f "$file"; then
               printf '\n### %s\n\n```text\n' "$(basename "$file")" >> "$GITHUB_STEP_SUMMARY"
               tail -150 "$file" >> "$GITHUB_STEP_SUMMARY"

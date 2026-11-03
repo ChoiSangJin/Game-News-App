@@ -21,7 +21,7 @@ class PublicFeeds implements FeedSource {
     'GameSpot': Uri.parse('https://www.gamespot.com/feeds/mashup/'),
   };
   Future<String> _get(Uri uri) async {
-    final response = await client.get(uri, headers: {'Accept': 'application/rss+xml, application/json, text/xml'}).timeout(const Duration(seconds: 20));
+    final response = await client.get(uri, headers: {'User-Agent': 'GameBrief/1.0 (personal RSS reader)', 'Accept': 'application/rss+xml, application/json, text/xml'}).timeout(const Duration(seconds: 20));
     if (response.statusCode == 429) throw StateError('요청 한도 도달. 나중에 다시 시도하세요.');
     if (response.statusCode != 200) throw StateError('HTTP ${response.statusCode}');
     return utf8.decode(response.bodyBytes);
