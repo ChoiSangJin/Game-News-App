@@ -28,21 +28,34 @@ jobs:
       - name: Tests
         run: |
           set -o pipefail
-          flutter test --reporter expanded 2>&1 | tee /tmp/game-brief-tests.log
+          if flutter test --reporter expanded 2>&1 | tee /tmp/game-brief-tests.log; then
+            echo '::notice::Flutter test suite passed'
+          else
+            python3 scripts/ci_diagnostics.py /tmp/game-brief-tests.log
+            exit 1
+          fi
+      - run: dart run flutter_launcher_icons
+      - name: ARM64 debug APK
+        run: |
+          set -o pipefail
+          if flutter build apk --debug --target-platform android-arm64 2>&1 | tee /tmp/game-brief-build.log; then
+            echo '::notice::ARM64 APK build passed'
+          else
+            python3 scripts/ci_diagnostics.py /tmp/game-brief-build.log
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: game-brief-arm64-test-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
       - name: Validation summary
         if: always()
         run: |
-          for file in /tmp/game-brief-analyze.log /tmp/game-brief-tests.log; do
+          for file in /tmp/game-brief-analyze.log /tmp/game-brief-tests.log /tmp/game-brief-build.log; do
             if test -f "$file"; then
               printf '\n### %s\n\n```text\n' "$(basename "$file")" >> "$GITHUB_STEP_SUMMARY"
               tail -150 "$file" >> "$GITHUB_STEP_SUMMARY"
               printf '\n```\n' >> "$GITHUB_STEP_SUMMARY"
             fi
           done
-      - run: dart run flutter_launcher_icons
-      - run: flutter build apk --debug --target-platform android-arm64
-      - uses: actions/upload-artifact@v4
-        with:
-          name: game-brief-arm64-test-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
-          if-no-files-found: error
