@@ -1,46 +1,38 @@
 # Game Brief
 
-Flutter로 만든 개인용 Android 게임 뉴스·발매 일정 앱. 서버나 웹 크롤링 없이 RSS와 공개 API를 사용합니다.
+개인용 Android ARM64 게임 뉴스·발매 일정 앱. Flutter 3.35.7 / JDK 17 / Android 7.0(API 24) 이상.
 
-## 기능
+## Gemini 번역 설정
 
-- 하단 뉴스 / 이벤트 달력, 전체·PC·PS5·Nintendo·Mobile 필터
-- PC Gamer, GameSpot RSS의 제목·요약·출처·원문 링크
-- 12시간 로컬 캐시. 앱 실행·복귀·하단 탭 전환 시 만료된 경우만 갱신. 플랫폼 필터는 네트워크 요청 없이 동작
-- 아래로 당겨 캐시 무효화 및 갱신. 동시 요청 병합, 1분 요청 보호, 20초 HTTP 타임아웃, 실패 시 오래된 캐시 유지
-- ML Kit 기기 내 영어→한국어 번역. 제목은 갱신 때 번역하고 저장, 본문 요약은 상세 화면 A/가 버튼에서만 번역. 원문 기본 표시
-- RAWG 발매일: 설정에서 개인 키 입력. 앞으로 180일 중 날짜가 확정된 최대 40개 조회. 전체 게임 일정을 보장하지 않음
-- 쇼케이스·게임쇼는 공식 출처를 확인해 날짜별 개인 일정으로 등록·삭제
-- 일정별 전날 오전 9시 알림 예약·취소. Android 13 이상 알림 권한 요청. 절전 정책에 따른 지연 가능. 시간대 변경 후 다시 예약
-- 게임패드+뉴스/달력 모양 자체 아이콘. `flutter_launcher_icons` 설정 포함
+1. 앱 설정 → **Google AI Studio에서 API 키 발급**을 누릅니다.
+2. https://aistudio.google.com/apikey 에서 로그인하고 키를 생성·복사합니다.
+3. Gemini API 키 입력란에 붙여넣고 저장합니다. 키는 기기 보안 저장소에 보관합니다.
+4. **키 확인 및 모델 업데이트 확인**으로 키와 사용 가능한 안정판 Flash 모델을 확인할 수 있습니다.
 
-## 개발
+기본 모델은 2026-11-03 확인한 [Google 공식 시작 예제](https://github.com/google-gemini/cookbook/blob/main/quickstarts/Get_started.ipynb)의 기본 권장 모델 `gemini-3.8-flash`입니다. 구글 모델 문서 https://ai.google.dev/gemini-api/docs/models 는 이번 클라우드에서 차단되어, 접근 가능한 공식 예제를 확인했습니다.
 
-Flutter **3.35.7** (Dart 3.9), JDK 17, Android SDK 필요. Android 최소 API 24, ARM64 대상.
+새 번역이 필요하면 하루 한 번 공식 Models API로 사용 가능 여부를 확인합니다. 지원 종료 모델은 생성 요청 전에 중단하고 설정에서 다른 안정판 Flash 모델을 선택하도록 안내합니다. 새 모델은 설정에서 직접 선택합니다. Pro·프리뷰로 자동 변경하지 않습니다. 모델별 요금·무료 한도는 다르며 다른 앱과 같은 프로젝트 키를 쓰면 한도를 공유합니다.
+
+## 조회 및 토큰 절약
+
+- 시작 시 전체 피드를 불러오지 않습니다. PC / PS5 / Nintendo / Mobile 중 하나를 누를 때 조회합니다.
+- RSS 제공자는 통합 피드를 반환하므로 원본 RSS를 받아 선택 기기의 기사만 로컬에서 선별합니다. 다른 기기의 기사는 Gemini에 보내지 않습니다. 웹 크롤링은 하지 않습니다.
+- 선택한 기기의 최신 제목 최대 20개를 한 번에 번역합니다. 각 기기의 피드는 별도로 12시간 캐시합니다.
+- 같은 원문·모델의 번역은 재사용합니다. 본문(RSS 요약)은 상세 화면 A/가를 눌러야 전송합니다.
+- 빈 키는 번역 호출 없이 원문을 표시합니다. 429 이후 1분 중단하며 자동 재시도는 하지 않습니다. 입력 20,000자·출력 8,192토큰 상한을 적용합니다.
+- 달력은 선택했을 때 RAWG 일정만 조회합니다. 일정 제목은 일괄 번역하지 않고 상세 화면에서 요청할 수 있습니다. RAWG 키는 선택 사항입니다.
+- 뉴스 원문·요약이 Google에 전송됩니다. 개인정보·무료 티어 데이터 사용 조건은 https://ai.google.dev/gemini-api/terms 와 요금 안내를 확인하세요.
+
+## 개발 및 배포
 
 ```sh
 flutter pub get
-dart run flutter_launcher_icons
 flutter analyze --no-fatal-infos
 flutter test
-flutter build apk --debug --target-platform android-arm64
-flutter run
+flutter test --dart-define=LIVE_FEEDS=true test/live_feed_test.dart
+flutter build apk --release --target-platform android-arm64 --split-per-abi
 ```
 
-기본 키 없이 뉴스가 동작합니다. RAWG 키는 앱 설정에 입력하며 `flutter_secure_storage`에 저장합니다. API 키나 서명 키를 소스에 포함하지 마세요. 첫 번역 시 모델을 다운로드하므로 네트워크와 저장 공간이 필요합니다. 번역 모델 실패는 원문으로 대체하며 상세 화면에서 재시도할 수 있습니다.
+[배포 절차](docs/deployment.md). 서명 키·비밀번호는 저장소에 포함하지 않습니다. 기존 정식 v1.0.0과 동일 서명 키를 사용하므로 업데이트 설치할 수 있습니다. debug 테스트 앱과는 서명이 다릅니다.
 
-피드 수집 경로: `https://www.pcgamer.com/rss/`, `https://www.gamespot.com/feeds/mashup/`. 일정: `https://api.rawg.io/api/games`. 공식 API 문서: https://rawg.io/apidocs . 외부 피드 제공 중단·요청 제한 시 UI에 실패 상태를 표시하며 기존 데이터를 유지합니다. ML Kit 모델은 Google의 공식 모델 배포 경로로 다운로드합니다.
-
-## APK 게시
-
-[배포 절차](docs/deployment.md)를 참고하세요. CI는 분석·테스트·ARM64 debug APK 빌드를 수행합니다. Release 워크플로는 main에서 수동 실행하며 동일 검증 후 개인 서명 키로 ARM64 release APK를 서명하고 GitHub Releases에 APK와 SHA256 체크섬을 게시합니다. 검증 실패 시 게시하지 않습니다.
-
-소스의 `pubspec.lock`은 최초 성공적인 `flutter pub get` 후 커밋해 의존성 해석을 고정해야 합니다. 생성된 lockfile을 저장소에 포함했습니다.
-
-## 검증 상태
-
-[GitHub Actions](https://github.com/ChoiSangJin/Game-News-App/actions/runs/41558211660)에서 Flutter 분석, 단위·위젯 테스트, 실제 공개 RSS 수집·파싱 및 ARM64 APK 빌드를 통과했습니다. 클라우드에서도 ARM64 APK를 빌드하고 서명을 검증했습니다. 기기 설치·번역 모델 다운로드·실제 알림 수신은 아직 검증하지 않았습니다.
-
-정식 APK는 [GitHub Releases](https://github.com/ChoiSangJin/Game-News-App/releases)에서 다운로드합니다. Android 7.0(API 24) 이상 ARM64 대상입니다. 이전 debug 테스트 앱을 설치했다면 서명이 다르므로 삭제 후 정식 APK를 설치해야 합니다. 삭제 시 로컬 데이터가 사라질 수 있습니다.
-
-개인 배포 서명 키는 저장소 밖에 보관하며 소스와 Release에는 포함하지 않습니다. GitHub Actions에서 후속 버전을 배포하려면 docs/deployment.md에 명시한 서명 비밀값을 등록해야 합니다. 최초 배포 키를 계속 사용해야 기존 앱 위에 업데이트할 수 있습니다.
+Gemini 응답·배치·캐시·429·모델 지원 종료는 HTTP mock 테스트로 검증합니다. 실제 사용자 API 키로 번역 품질·요금·모델 사용 권한을 검증한 것은 아니며 사용자 입력 후 확인해야 합니다.
