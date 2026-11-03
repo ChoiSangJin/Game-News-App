@@ -1,0 +1,26 @@
+name: Upload verified APK
+on:
+  push:
+    branches: ['dist/**']
+permissions:
+  contents: write
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Verify checksum
+        working-directory: distribution
+        run: sha256sum --check SHA256SUMS
+      - name: Verify Android signature
+        run: |
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
+          "$APKSIGNER" verify --verbose distribution/game-brief-arm64.apk
+      - name: Publish signed APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view v1.1.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create v1.1.0 --repo "$GITHUB_REPOSITORY" --target 5e61a24dff0b2b13e1d577d782566a79c8aebc83 --title 'Game Brief 1.1.0 — Gemini 번역' --notes-file distribution/RELEASE_NOTES.md
+          fi
+          gh release upload v1.1.0 distribution/game-brief-arm64.apk distribution/SHA256SUMS --repo "$GITHUB_REPOSITORY" --clobber
