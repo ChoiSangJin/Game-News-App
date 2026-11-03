@@ -24,7 +24,7 @@ void main() {
     await tester.tap(find.widgetWithText(TextButton, 'A / 가')); await tester.pumpAndSettle();
     expect(translator.texts, ['PC launch', 'Summary body']);
     expect(find.text('번역: Summary body'), findsOneWidget);
-    await tester.pageBack(); await tester.pumpAndSettle();
+    await tester.tap(find.byType(BackButton)); await tester.pumpAndSettle();
     await tester.tap(find.text('이벤트 달력')); await tester.pumpAndSettle();
     await tester.drag(find.byType(ListView), const Offset(0, -350));
     await tester.pumpAndSettle();
