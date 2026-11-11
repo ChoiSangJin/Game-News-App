@@ -66,6 +66,7 @@ class _SettingsPageState extends State<SettingsPage> {
       if (gemini) {
         keyInput.text = value;
         await translator?.configureKey(value);
+        await app.invalidateTranslationFeeds();
       } else {
         rawg.text = value;
         await app.updateRawgKey(value);
@@ -247,7 +248,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 16),
           const Text(
-            '두 키는 기기의 보안 저장소에 보관합니다. 앱 시작 시에는 조회하지 않습니다. 기기 선택 시 뉴스, 달력 선택 시 RAWG 일정만 조회합니다. 각 화면의 데이터는 12시간 캐시되며 수동 갱신은 최소 1분 간격입니다.',
+            '두 키는 기기의 보안 저장소에 보관합니다. 앱 시작 시에는 조회하지 않습니다. 기기 선택 시 뉴스, 달력 선택 시 RAWG 일정만 조회합니다. 저장 후 기기를 다시 선택하거나 새로고침하면 번역을 적용합니다. 각 화면의 데이터는 12시간 캐시되며 수동 갱신은 최소 1분 간격입니다.',
           ),
           if (message != null)
             Padding(

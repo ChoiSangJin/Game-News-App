@@ -181,9 +181,23 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<void> invalidateTranslationFeeds() async {
+    for (final platform in GamePlatform.values) {
+      final feed = FeedCache(
+        cache.prefs,
+        namespace: 'feed_gemini_v1:${platform.name}',
+      )..load();
+      await feed.invalidate();
+    }
+    if (!calendarSelected) await cache.invalidate();
+    _lastAttempt = null;
+    notifyListeners();
+  }
+
   Future<void> updateRawgKey(String value) async {
     if (rawgKey == value) return;
     rawgKey = value;
+    _lastAttempt = null;
     final calendarCache = FeedCache(
       cache.prefs,
       namespace: 'feed_gemini_v1:calendar',
