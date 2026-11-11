@@ -54,11 +54,19 @@ jobs:
           test -n "$ANDROID_KEY_PASSWORD"
           umask 077
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.jks
+          python3 scripts/check_signing.py
           python3 scripts/signing_properties.py
       - name: Build ARM64 release
         env:
           RELEASE_TAG: ${{ inputs.tag }}
-        run: flutter build apk --release --target-platform android-arm64 --split-per-abi --build-name="${RELEASE_TAG#v}" --build-number="$((GITHUB_RUN_NUMBER + 2))"
+        run: |
+          set -o pipefail
+          if flutter build apk --release --target-platform android-arm64 --split-per-abi --build-name="${RELEASE_TAG#v}" --build-number="$((GITHUB_RUN_NUMBER + 2))" 2>&1 | tee /tmp/gamebrief-release-build.log; then
+            echo 'Release build passed'
+          else
+            python3 scripts/release_diagnostics.py /tmp/gamebrief-release-build.log
+            exit 1
+          fi
       - name: Verify APK signature and checksum
         run: |
           APK=build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
@@ -79,4 +87,4 @@ jobs:
           gh release create "$RELEASE_TAG" dist/game-brief-arm64.apk dist/SHA256SUMS --verify-tag --title "Game Brief $RELEASE_TAG" --notes-file docs/release-notes.md
       - name: Remove temporary signing files
         if: always()
-        run: rm -f android/key.properties android/app/release.jks
+        run: rm -f android/key.properties android/app/release.jks android/app/signing-preflight.p12
