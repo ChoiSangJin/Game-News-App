@@ -33,7 +33,7 @@ flutter test --dart-define=LIVE_FEEDS=true test/live_feed_test.dart
 flutter build apk --release --target-platform android-arm64 --split-per-abi
 ```
 
-[배포 절차](docs/deployment.md). 서명 키·비밀번호는 저장소에 포함하지 않습니다. 기존 정식 v1.0.0과 동일 서명 키를 사용하므로 업데이트 설치할 수 있습니다. debug 테스트 앱과는 서명이 다릅니다.
+[배포 절차](docs/deployment.md). 서명 키·비밀번호는 저장소에 포함하지 않습니다. v1.1.1부터 사용자가 등록한 GitHub Secrets의 새 서명 키를 사용합니다. v1.0.0·v1.1.0 및 debug 테스트 앱은 삭제 후 새로 설치해야 합니다. 삭제하면 저장된 키·개인 일정 등 앱 데이터가 지워집니다. 필요한 정보를 먼저 별도로 보관하세요. 이후 버전은 새 서명 키를 계속 사용합니다.
 
 Gemini 응답·배치·캐시·429·모델 지원 종료는 HTTP mock 테스트로 검증합니다. 실제 사용자 API 키로 번역 품질·요금·모델 사용 권한을 검증한 것은 아니며 사용자 입력 후 확인해야 합니다.
 
