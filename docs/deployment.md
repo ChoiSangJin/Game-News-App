@@ -10,7 +10,7 @@
 3. GitHub 저장소 Settings → Secrets and variables → Actions에 다음 값을 등록합니다. 키나 비밀번호를 채팅·소스·Release에 올리지 마세요.
 
    - `ANDROID_KEYSTORE_BASE64`: 위 keystore의 base64 인코딩 내용
-   - `ANDROID_STORE_PASSWORD`: keystore 비밀번호
+   - `ANDROID_KEYSTORE_PASSWORD`: keystore 비밀번호
    - `ANDROID_KEY_ALIAS`: 위 alias (`gamebrief`)
    - `ANDROID_KEY_PASSWORD`: 개인 키 비밀번호
 

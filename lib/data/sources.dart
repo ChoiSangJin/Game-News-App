@@ -44,6 +44,31 @@ class PublicFeeds implements FeedSource {
     return utf8.decode(response.bodyBytes);
   }
 
+  Future<void> validateKey(String key) async {
+    if (key.isEmpty) throw StateError('RAWG API 키를 입력하세요.');
+    final response = await client
+        .get(
+          Uri.https('api.rawg.io', '/api/games', {
+            'key': key,
+            'page_size': '1',
+          }),
+        )
+        .timeout(const Duration(seconds: 20));
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      throw StateError('RAWG API 키가 올바르지 않거나 권한이 없습니다.');
+    }
+    if (response.statusCode == 429) {
+      throw StateError('RAWG 요청 한도에 도달했습니다. 잠시 후 다시 확인하세요.');
+    }
+    if (response.statusCode != 200) {
+      throw StateError('RAWG 연결 실패 (HTTP ${response.statusCode}).');
+    }
+    final data = jsonDecode(utf8.decode(response.bodyBytes));
+    if (data is! Map || data['results'] is! List) {
+      throw StateError('RAWG 응답을 확인할 수 없습니다.');
+    }
+  }
+
   @override
   Future<FetchResult> fetch(
     String rawgKey, {

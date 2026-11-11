@@ -10,7 +10,7 @@ def escape(value):
 if __name__ == '__main__':
     values = {
         'storeFile': str(Path('android/app/release.jks').resolve()),
-        'storePassword': os.environ['ANDROID_STORE_PASSWORD'],
+        'storePassword': os.environ['ANDROID_KEYSTORE_PASSWORD'],
         'keyAlias': os.environ['ANDROID_KEY_ALIAS'],
         'keyPassword': os.environ['ANDROID_KEY_PASSWORD'],
     }

@@ -29,10 +29,21 @@ class GeminiTranslator extends Translator {
   List<String> availableModels = [];
   bool get configured => apiKey.trim().isNotEmpty;
 
+  Future<void> configureKey(String value) async {
+    if (apiKey != value) {
+      blockedUntil = null;
+      availableModels = [];
+      await prefs.remove('gemini_models_checked');
+      await prefs.remove('gemini_models');
+    }
+    apiKey = value;
+  }
+
   Future<List<String>> checkModels() async {
     if (!configured) throw StateError('먼저 Gemini API 키를 저장하세요.');
     final names = <String>[];
     String? page;
+    var pages = 0;
     do {
       final response = await client
           .get(
@@ -47,7 +58,9 @@ class GeminiTranslator extends Translator {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       for (final m in data['models'] as List? ?? []) {
         final name = (m['name'] as String).replaceFirst('models/', '');
-        if (RegExp(r'^gemini-\d+\.\d+-flash(?:-lite)?$').hasMatch(name) &&
+        if (RegExp(
+              r'^gemini-(?:\d+(?:\.\d+)?-flash(?:-lite)?(?:-\d{3})?|flash(?:-lite)?-latest)$',
+            ).hasMatch(name) &&
             (m['supportedGenerationMethods'] as List? ?? []).contains(
               'generateContent',
             )) {
@@ -55,8 +68,19 @@ class GeminiTranslator extends Translator {
         }
       }
       page = data['nextPageToken'] as String?;
-    } while (page != null && names.length < 200);
+    } while (page != null && ++pages < 5);
     availableModels = names..sort();
+    if (names.isNotEmpty && !names.contains(model)) {
+      final preferred = [
+        'gemini-2.5-flash',
+        'gemini-2.5-flash-lite',
+        'gemini-flash-latest',
+      ];
+      await prefs.setString(
+        'gemini_model',
+        preferred.firstWhere(names.contains, orElse: () => names.first),
+      );
+    }
     await prefs.setStringList('gemini_models', names);
     await prefs.setString(
       'gemini_models_checked',
@@ -69,6 +93,11 @@ class GeminiTranslator extends Translator {
     if (r.statusCode == 429) {
       blockedUntil = DateTime.now().add(const Duration(minutes: 1));
       throw StateError('Gemini 요청 한도에 도달했습니다. 잠시 후 다시 시도하세요.');
+    }
+    if (r.statusCode == 400) {
+      throw StateError(
+        'Gemini 키 또는 요청 설정을 확인하세요. API 키 문자열만 입력하고 해당 프로젝트에서 Gemini API를 사용할 수 있는지 확인하세요.',
+      );
     }
     if (r.statusCode == 401 || r.statusCode == 403) {
       throw StateError('Gemini API 키와 해당 프로젝트의 사용 권한을 확인하세요.');
@@ -101,7 +130,7 @@ class GeminiTranslator extends Translator {
     if (blockedUntil != null && DateTime.now().isBefore(blockedUntil!)) {
       throw StateError('요청 한도 보호 중입니다. 1분 후 다시 시도하세요.');
     }
-    final selectedModel = model;
+    var selectedModel = model;
     String cacheKey(String text) =>
         'gemini_translation_v1:$selectedModel:$text';
     final missing = texts
@@ -117,6 +146,7 @@ class GeminiTranslator extends Translator {
           DateTime.now().difference(checked) >= const Duration(hours: 24) ||
           checked.isAfter(DateTime.now())) {
         final models = await checkModels();
+        selectedModel = model;
         if (!models.contains(selectedModel)) {
           throw StateError('선택한 모델을 사용할 수 없습니다. 설정에서 새 Flash 모델을 선택하세요.');
         }
@@ -125,7 +155,9 @@ class GeminiTranslator extends Translator {
           missing.fold<int>(0, (n, t) => n + t.length) > 20000) {
         throw StateError('번역 분량이 너무 큽니다.');
       }
-      if (!(prefs.getStringList('gemini_models') ?? []).contains(selectedModel)) {
+      if (!(prefs.getStringList('gemini_models') ?? []).contains(
+        selectedModel,
+      )) {
         throw StateError('선택한 모델을 사용할 수 없습니다. 설정에서 새 Flash 모델을 선택하세요.');
       }
       final response = await client
@@ -163,7 +195,7 @@ class GeminiTranslator extends Translator {
                   'items': {'type': 'STRING'},
                 },
                 if (selectedModel.startsWith('gemini-3'))
-                  'thinkingConfig': {'thinkingLevel': 'minimal'},
+                  'thinkingConfig': {'thinkingLevel': 'MINIMAL'},
               },
             }),
           )
