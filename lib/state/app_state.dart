@@ -181,6 +181,19 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<void> updateRawgKey(String value) async {
+    if (rawgKey == value) return;
+    rawgKey = value;
+    final calendarCache = FeedCache(
+      cache.prefs,
+      namespace: 'feed_gemini_v1:calendar',
+    )..load();
+    calendarCache.stories = [];
+    await calendarCache.invalidate();
+    if (calendarSelected) cache = calendarCache;
+    notifyListeners();
+  }
+
   Future<void> changeKey(String value) async {
     rawgKey = value.trim();
     // Remove schedules tied to a previous account and invalidate its TTL.

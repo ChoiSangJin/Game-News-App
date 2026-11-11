@@ -22,10 +22,14 @@ Future<void> main() async {
   try {
     translator.apiKey =
         await const FlutterSecureStorage().read(key: 'gemini_key') ?? '';
+  } catch (_) {
+    /* Restore the other provider independently. */
+  }
+  try {
     state.rawgKey =
         await const FlutterSecureStorage().read(key: 'rawg_key') ?? '';
   } catch (_) {
-    /* News remains available when secure storage is unavailable. */
+    /* News still works if this provider cannot be restored. */
   }
   runApp(
     ChangeNotifierProvider.value(value: state, child: const GameNewsApp()),
@@ -52,6 +56,8 @@ class GameNewsApp extends StatelessWidget {
       scaffoldBackgroundColor: const Color(0xFF101727),
       appBarTheme: const AppBarTheme(backgroundColor: Color(0xFF101727)),
     ),
+    builder: (context, child) =>
+        SafeArea(top: false, child: child ?? const SizedBox.shrink()),
     home: const HomePage(),
   );
 }
