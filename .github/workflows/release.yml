@@ -72,7 +72,7 @@ jobs:
           APK=build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
           "$APKSIGNER" verify --verbose --print-certs "$APK" > /tmp/gamebrief-signature.txt
-          grep -Fi 'ac61494a3141752b2e0b8ce6758883cf1ee86ac9641192e594e753d17efcbc9b' /tmp/gamebrief-signature.txt
+          grep -Fi 'ebd50026880286899e286b7cab2a240aed5b64a3b19b5a1b12addc6a8d2b8d6e' /tmp/gamebrief-signature.txt
           mkdir -p dist
           cp "$APK" dist/game-brief-arm64.apk
           cd dist

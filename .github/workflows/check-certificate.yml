@@ -27,7 +27,7 @@ jobs:
           p=subprocess.run(['keytool','-exportcert','-keystore','android/app/release.jks','-storepass:env','ANDROID_KEYSTORE_PASSWORD','-alias',os.environ['ANDROID_KEY_ALIAS']],stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True)
           digest=hashlib.sha256(p.stdout).hexdigest()
           print('::notice::REGISTERED_CERTIFICATE_SHA256='+digest)
-          print('::notice::MATCHES_EXISTING_APP='+str(digest=='ac61494a3141752b2e0b8ce6758883cf1ee86ac9641192e594e753d17efcbc9b'))
+          print('::notice::MATCHES_RELEASE_BASELINE='+str(digest=='ebd50026880286899e286b7cab2a240aed5b64a3b19b5a1b12addc6a8d2b8d6e'))
           PY
       - name: Remove temporary keystore
         if: always()
